@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ポケモンひらがな カード</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #060c22;
+      font-family: 'Hiragino Maru Gothic Pro', 'Rounded Mplus 1c', sans-serif;
+      color: #fff;
+    }
+
+    /* ── 背景 ── */
+    #bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 15% 25%, rgba(100,0,200,0.3) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 75%, rgba(0,60,200,0.35) 0%, transparent 55%),
+        linear-gradient(180deg, #0a1232, #060c22);
+    }
+    .star {
+      position: absolute; border-radius: 50%; background: #fff;
+      animation: twinkle 3s infinite alternate;
+    }
+    @keyframes twinkle { from{opacity:.1} to{opacity:.9} }
+
+    /* ── 上部UI: position:fixed で上に固定 ── */
+    #topUI {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 8px 8px 6px;
+      background: transparent;
+    }
+    #header {
+      width: min(540px, 80vw);
+      background: linear-gradient(135deg, #cc0000, #ff3300 50%, #ff6600);
+      border-radius: 14px; padding: 7px 20px 5px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(255,40,0,0.5);
+      border: 2px solid rgba(255,200,80,0.4);
+    }
+    #header h1 {
+      font-size: clamp(1.0rem, 2.2vw, 1.5rem);
+      font-weight: 900; letter-spacing: 3px;
+      text-shadow: 0 0 16px rgba(255,220,0,0.9);
+    }
+    #header .sub {
+      font-size: clamp(0.55rem, 1.1vw, 0.68rem);
+      color: rgba(255,255,255,0.85); margin-top: 1px;
+    }
+    #decoBar {
+      display: flex; gap: 2px; justify-content: center; align-items: flex-end;
+      height: 52px; flex-shrink: 0;
+    }
+    #decoBar img {
+      height: 46px; object-fit: contain; flex-shrink: 0;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7));
+      animation: bounce-poke 2s ease-in-out infinite;
+    }
+    #decoBar img:nth-child(1){animation-delay:0.0s}
+    #decoBar img:nth-child(2){animation-delay:0.2s}
+    #decoBar img:nth-child(3){animation-delay:0.4s}
+    #decoBar img:nth-child(4){animation-delay:0.6s}
+    #decoBar img:nth-child(5){animation-delay:0.8s}
+    #decoBar img:nth-child(6){animation-delay:1.0s}
+    #decoBar img:nth-child(7){animation-delay:1.2s}
+    #decoBar img:nth-child(8){animation-delay:1.4s}
+    @keyframes bounce-poke { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+    #rowSelector {
+      display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;
+      max-width: 90vw;
+    }
+    .row-btn {
+      background: rgba(255,255,255,0.08); border: 2px solid rgba(255,215,0,0.35);
+      color: #ffd700; border-radius: 16px; padding: 2px 9px;
+      font-size: clamp(0.58rem, 1.0vw, 0.72rem);
+      cursor: pointer; font-family: inherit; font-weight: bold;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .row-btn:hover { background: rgba(255,215,0,0.2); }
+    .row-btn.active { background: #ffd700; color: #0a1232; border-color: #ffd700; }
+
+    /* ── 下部UI: position:fixed で下に固定 ── */
+    #bottomUI {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 6px 8px 10px;
+      background: transparent;
+    }
+    #stars {
+      font-size: 1.1rem; min-height: 1.4rem; text-align: center;
+      text-shadow: 0 0 14px rgba(255,220,0,0.8);
+    }
+    #progressWrap {
+      width: 240px; background: rgba(255,255,255,0.12);
+      border-radius: 5px; height: 5px; overflow: hidden;
+    }
+    #progressBar {
+      height: 100%; background: linear-gradient(90deg, #ffd700, #ff6600);
+      border-radius: 5px; transition: width 0.4s ease;
+    }
+    #progressLabel { font-size: 0.62rem; color: rgba(255,255,255,0.4); }
+    .controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    button {
+      border: none; border-radius: 26px; padding: 8px 16px;
+      font-size: clamp(0.7rem, 1.6vw, 0.82rem);
+      cursor: pointer; font-family: inherit; font-weight: bold; transition: transform 0.1s;
+    }
+    button:active { transform: scale(0.93); }
+    .btn-sound   { background: linear-gradient(135deg,#ff4444,#cc0000); color:#fff; }
+    .btn-prev    { background: rgba(255,255,255,0.12); color:#fff; border:2px solid rgba(255,255,255,0.22); }
+    .btn-flip    { background: linear-gradient(135deg,#00b894,#00cec9); color:#fff; }
+    .btn-next    { background: linear-gradient(135deg,#ffd700,#ff9900); color:#0a1232; }
+    .btn-shuffle { background: linear-gradient(135deg,#6c5ce7,#a29bfe); color:#fff; }
+    .btn-bgm     { background: linear-gradient(135deg,#00b4d8,#0077b6); color:#fff; }
+    .keyboard-hint { font-size: 0.5rem; color: rgba(255,255,255,0.2); }
+
+    /* ── カードエリア: JSで top/height を設定 ── */
+    #cardZone {
+      position: fixed; left: 0; right: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      /* top と height は JS で設定 */
+    }
+
+    /* ── カード本体 ── */
+    .card-area {
+      cursor: pointer;
+      /* perspective をここに置くと回転時に視点がずれない */
+      perspective: 1000px;
+      /* width と height は JS で設定 */
+    }
+    .card-inner {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+      /* will-change で GPU合成レイヤーに乗せてずれを防ぐ */
+      will-change: transform;
+    }
+    .card-inner.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden; /* Safari対策 */
+      border-radius: 22px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.65);
+    }
+
+    /* 表面 */
+    .card-front {
+      background: linear-gradient(145deg, #fffde8, #fff3a0);
+      border: 5px solid #ffd700; overflow: hidden; position: relative;
+    }
+    .card-front::before {
+      content: ''; position: absolute; bottom: -20px; right: -20px;
+      width: 80px; height: 80px; border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255,0,0,0.07) 0%, rgba(255,0,0,0.07) 48%,
+        rgba(0,0,0,0.07) 48%, rgba(0,0,0,0.07) 52%,
+        rgba(255,255,255,0.07) 52%);
+      border: 3px solid rgba(0,0,0,0.05);
+    }
+    .hiragana-char {
+      font-size: clamp(4rem, 16vw, 8rem);
+      color: #1a1a2e; font-weight: 900; line-height: 1;
+      user-select: none; z-index: 1;
+      text-shadow: 3px 3px 0 rgba(255,200,0,0.25);
+    }
+    .card-tap-hint {
+      font-size: clamp(0.52rem, 1.4vw, 0.68rem);
+      color: #aaa; margin-top: 8px; z-index: 1;
+    }
+
+    /* 裏面 */
+    .card-back {
+      background: linear-gradient(145deg, #ddeeff, #b0d4ff);
+      border: 5px solid #3388ff; transform: rotateY(180deg);
+      overflow: hidden; position: relative;
+    }
+    .card-back::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.55) 0%, transparent 65%);
+    }
+    .poke-number {
+      position: absolute; top: 7px; right: 9px;
+      font-size: 0.6rem; color: rgba(20,50,110,0.5); font-weight: bold;
+    }
+    .pokemon-img {
+      width: 46%; height: 46%; object-fit: contain;
+      filter: drop-shadow(0 5px 10px rgba(0,50,180,0.4));
+      z-index: 1; position: relative;
+    }
+    .pokemon-name {
+      font-size: clamp(0.6rem, 2.0vw, 1.0rem);
+      font-weight: 900; color: #0b1e60;
+      margin-top: 4px; letter-spacing: 0px;
+      z-index: 1; position: relative;
+      text-align: center; padding: 0 8px;
+      white-space: nowrap;
+    }
+    .pokemon-reading {
+      font-size: clamp(0.58rem, 1.6vw, 0.75rem);
+      color: #1a55bb; margin-top: 2px; z-index: 1; position: relative;
+    }
+    .pokemon-member {
+      font-size: clamp(0.48rem, 1.2vw, 0.6rem);
+      color: rgba(20,50,110,0.6); margin-top: 2px; z-index: 1; position: relative;
+    }
+
+    /* ── 装飾: 左右ポケモン ── */
+    .side-poke {
+      position: fixed; bottom: 0; z-index: 10; pointer-events: none;
+      height: clamp(80px, 13vw, 180px);
+      filter: drop-shadow(0 6px 16px rgba(0,0,0,0.7));
+      animation: side-float 3s ease-in-out infinite alternate;
+    }
+    .side-poke.left  { left: 0; }
+    .side-poke.right { right: 0; animation-direction: alternate-reverse; }
+    @keyframes side-float {
+      from { transform: translateY(0) rotate(-2deg); }
+      to   { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    /* ── 装飾: 下段ポケモン列 ── */
+    #bottomStrip {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 55px; z-index: 5; pointer-events: none;
+      display: flex; align-items: flex-end; justify-content: space-around;
+      padding: 0 clamp(70px, 13vw, 170px);
+    }
+    #bottomStrip img {
+      height: clamp(34px, 5vw, 50px); object-fit: contain; opacity: 0.65;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));
+      animation: sway 2.5s ease-in-out infinite alternate;
+    }
+    #bottomStrip img:nth-child(even) { animation-direction: alternate-reverse; }
+    @keyframes sway {
+      from { transform: rotate(-5deg) translateY(0); }
+      to   { transform: rotate(5deg) translateY(-5px); }
+    }
+
+    /* ── 左右の浮遊ポケモン＆ボール ── */
+    #floatZone {
+      position: fixed; inset: 0; z-index: 6; pointer-events: none;
+    }
+    .float-item {
+      position: absolute;
+      animation: floatUD 4s ease-in-out infinite alternate;
+    }
+    .float-item img {
+      width: 100%; height: 100%; object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+    }
+    .float-item svg { width: 100%; height: 100%; }
+    @keyframes floatUD {
+      from { transform: translateY(0px) rotate(-4deg); }
+      to   { transform: translateY(-18px) rotate(4deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="bg"></div>
+<img id="sideLeft"  class="side-poke left"  src="" alt="" style="display:none"/>
+<img id="sideRight" class="side-poke right" src="" alt="" style="display:none"/>
+<div id="bottomStrip"></div>
+<div id="floatZone"></div>
+
+<!-- 上部UI -->
+<div id="topUI">
+  <div id="header">
+    <h1>⚡ ポケモン ひらがな ⚡</h1>
+    <div class="sub">ライジングボルテッカーズと いっしょに まなぼう！</div>
+  </div>
+  <div id="decoBar"></div>
+  <div id="rowSelector"></div>
+</div>
+
+<!-- カードエリア(JSがtop/heightをセット) -->
+<div id="cardZone">
+  <div class="card-area" id="cardArea" onclick="flipCard()">
+    <div class="card-inner" id="cardInner">
+      <div class="card-face card-front">
+        <div class="hiragana-char" id="hiraganaChar">あ</div>
+        <div class="card-tap-hint">👆 タップしてポケモンをみよう！</div>
+      </div>
+      <div class="card-face card-back">
+        <span class="poke-number" id="pokeNumber"></span>
+        <img class="pokemon-img" id="pokemonImg" src="" alt=""/>
+        <div class="pokemon-img ball-svg" id="ballSvg" style="display:none">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <!-- 上半球(赤) -->
+            <clipPath id="topClip"><rect x="0" y="0" width="200" height="100"/></clipPath>
+            <clipPath id="botClip"><rect x="0" y="100" width="200" height="100"/></clipPath>
+            <circle cx="100" cy="100" r="95" fill="#cc0000" clip-path="url(#topClip)"
+              stroke="#111" stroke-width="4"/>
+            <!-- 上半球ハイライト -->
+            <ellipse cx="70" cy="55" rx="28" ry="18" fill="rgba(255,255,255,0.35)" transform="rotate(-30,70,55)"/>
+            <!-- 下半球(白) -->
+            <circle cx="100" cy="100" r="95" fill="#f0f0f0" clip-path="url(#botClip)"
+              stroke="#111" stroke-width="4"/>
+            <!-- 中央ライン -->
+            <rect x="5" y="88" width="190" height="24" fill="#111" rx="4"/>
+            <!-- 中央ボタン外枠 -->
+            <circle cx="100" cy="100" r="22" fill="#333" stroke="#111" stroke-width="3"/>
+            <!-- 中央ボタン内 -->
+            <circle cx="100" cy="100" r="16" fill="#f0f0f0" stroke="#888" stroke-width="2"/>
+            <!-- ボタンハイライト -->
+            <circle cx="94" cy="94" r="5" fill="rgba(255,255,255,0.7)"/>
+          </svg>
+        </div>
+        <div class="pokemon-name"    id="pokemonName"></div>
+        <div class="pokemon-reading" id="pokemonReading"></div>
+        <div class="pokemon-member"  id="pokemonMember"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 下部UI -->
+<div id="bottomUI">
+  <div id="stars"></div>
+  <div id="progressWrap"><div id="progressBar"></div></div>
+  <div id="progressLabel"></div>
+  <div class="controls">
+    <button class="btn-sound"  onclick="playSound()">🔊 よむ</button>
+    <button class="btn-prev"   onclick="changeCard(-1)">◀ まえ</button>
+    <button class="btn-flip"   onclick="flipCard()">🔄 ひっくり</button>
+    <button class="btn-next"   onclick="changeCard(1)">つぎ ▶</button>
+  </div>
+  <div class="controls">
+    <button class="btn-shuffle" onclick="shuffleCards()">🎲 シャッフル</button>
+    <button class="btn-bgm" id="bgmBtn" onclick="toggleBGM()">🎵 BGM オン</button>
+  </div>
+  <div class="keyboard-hint">← → でカードを移動 ｜ スペースでひっくり返す ｜ S で読み上げ ｜ M でBGM</div>
+</div>
+
+<script>
+/* ═══ データ ═══ */
+const ALL_CARDS = [
+  ["あ","アチゲータ",         "アチゲータ",              910, "ロイのポケモン"],
+  ["い","イワンコ",           "イワンコ",                744, "マードックのポケモン"],
+  ["う","ウパー",             "ウパー（パルデア）",      10253, "なかまのポケモン"],
+  ["え","エーフィ",           "エーフィ",                196, "なかまのポケモン"],
+  ["お","オーガポン",         "オーガポン",             1017, "なかまのポケモン"],
+  ["か","カイリュー",         "カイリュー",              149, "なかまのポケモン"],
+  ["き","キリンリキ",         "キリンリキ",              203, "なかまのポケモン"],
+  ["く","クワッス",           "クワッス",                912, "なかまのポケモン"],
+  ["け","ケンタロス",         "ケンタロス",              128, "なかまのポケモン"],
+  ["こ","コライドン",         "コライドン",             1007, "なかまのポケモン"],
+  ["さ","サーナイト",         "サーナイト",              282, "なかまのポケモン"],
+  ["し","シャリタツ",         "シャリタツ",              978, "なかまのポケモン"],
+  ["す","スリープ",           "スリープ",                 96, "なかまのポケモン"],
+  ["せ","セグレイブ",         "セグレイブ",              998, "なかまのポケモン"],
+  ["そ","ソウブレイズ",       "ソウブレイズ",            937, "なかまのポケモン"],
+  ["た","タイカイデン",       "タイカイデン",            941, "ロイのポケモン"],
+  ["ち","チラーミィ",         "チラーミィ",              572, "なかまのポケモン"],
+  ["つ","ツタージャ",         "ツタージャ",              495, "なかまのポケモン"],
+  ["て","テラパゴス",         "テラパゴス",             1024, "リコのポケモン"],
+  ["と","トドロクツキ",       "トドロクツキ",           1005, "なかまのポケモン"],
+  ["な","ナッシー",           "ナッシー",                103, "なかまのポケモン"],
+  ["に","ニャオハ",           "ニャオハ",                906, "リコのポケモン"],
+  ["ぬ","ヌオー",             "ヌオー",                  195, "ランドウのポケモン"],
+  ["ね","ネイティオ",         "ネイティオ",              178, "なかまのポケモン"],
+  ["の","ノノクラゲ",         "ノノクラゲ",              948, "なかまのポケモン"],
+  ["は","ハバタクカミ",       "ハバタクカミ",            987, "なかまのポケモン"],
+  ["ひ","ヒスイヌメルゴン",   "ヒスイヌメルゴン",        706, "なかまのポケモン"],
+  ["ふ","フシギダネ",         "フシギダネ",                1, "なかまのポケモン"],
+  ["へ","ヘラクロス",         "ヘラクロス",              214, "なかまのポケモン"],
+  ["ほ","ホゲータ",           "ホゲータ",                909, "ロイのポケモン"],
+  ["ま","マスカーニャ",       "マスカーニャ",            908, "リコのポケモン"],
+  ["み","ミブリム",           "ミブリム",                856, "リコのポケモン"],
+  ["む","ムンナ",             "ムンナ",                  517, "なかまのポケモン"],
+  ["め","メリープ",           "メリープ",                179, "なかまのポケモン"],
+  ["も","モルペコ",           "モルペコ",                877, "なかまのポケモン"],
+  ["や","ヤバチャ",           "ヤバチャ",                854, "なかまのポケモン"],
+  ["ゆ","ユキノオー",         "ユキノオー",              460, "なかまのポケモン"],
+  ["よ","ヨルノゾク",         "ヨルノゾク",              164, "なかまのポケモン"],
+  ["ら","ラウドボーン",       "ラウドボーン",            911, "ロイのポケモン"],
+  ["り","リザードン",         "リザードン",                6, "フリードのポケモン"],
+  ["る","ルカリオ",           "ルカリオ",                448, "なかまのポケモン"],
+  ["れ","レックウザ",         "レックウザ",              384, "なかまのポケモン"],
+  ["ろ","ロトム",             "ロトム",                  479, "なかまのポケモン"],
+  ["わ","ワニノコ",           "ワニノコ",                158, "なかまのポケモン"],
+  ["を","モンスターボールをなげる", "モンスターボール「を」なげる", "ball", "ポケモンをつかまえろ！"],
+  ["ん","ミライドン",         "ミライドン",             1008, "なかまのポケモン"],
+];
+
+const ROWS = [
+  { label:"ぜんぶ", chars:null },
+  { label:"あ行", chars:["あ","い","う","え","お"] },
+  { label:"か行", chars:["か","き","く","け","こ"] },
+  { label:"さ行", chars:["さ","し","す","せ","そ"] },
+  { label:"た行", chars:["た","ち","つ","て","と"] },
+  { label:"な行", chars:["な","に","ぬ","ね","の"] },
+  { label:"は行", chars:["は","ひ","ふ","へ","ほ"] },
+  { label:"ま行", chars:["ま","み","む","め","も"] },
+  { label:"や行", chars:["や","ゆ","よ"] },
+  { label:"ら行", chars:["ら","り","る","れ","ろ"] },
+  { label:"わ行", chars:["わ","を","ん"] },
+];
+
+const PARADE_IDS = [906, 909, 912, 203, 6, 908, 911, 158];
+const SIDE_IDS   = [];
+const STRIP_IDS  = [744, 856, 1008, 195, 745, 877, 987, 572];
+
+const spriteUrl = n =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${n}.png`;
+
+const MONSTERBALL_URL =
+  `https://archives.bulbagarden.net/media/upload/thumb/f/fb/Poke_Ball_artwork.png/250px-Poke_Ball_artwork.png`;
+
+
+/* ═══ 状態 ═══ */
+let deck = [...ALL_CARDS];
+let currentIndex = 0;
+let isFlipped = false;
+let isNavigating = false;
+const FLIP_MS = 630;
+
+/* ═══ レイアウト: topUI と bottomUI の高さを測ってカードを中央に置く ═══ */
+function layoutCard() {
+  const topH  = document.getElementById("topUI").getBoundingClientRect().height;
+  const botH  = document.getElementById("bottomUI").getBoundingClientRect().height;
+  const winH  = window.innerHeight;
+  const winW  = window.innerWidth;
+
+  const availH = winH - topH - botH;          // 使える縦幅
+  const CARD_RATIO = 325 / 270;               // カードの縦横比
+  const maxW = Math.min(270, winW * 0.72);
+  const maxH = Math.min(325, availH - 16);    // 上下8pxずつ余白
+
+  // アスペクト比を保ちながら収める
+  let cardW, cardH;
+  if (maxW * CARD_RATIO <= maxH) {
+    cardW = maxW;
+    cardH = Math.round(maxW * CARD_RATIO);
+  } else {
+    cardH = maxH;
+    cardW = Math.round(maxH / CARD_RATIO);
+  }
+
+  const zone = document.getElementById("cardZone");
+  zone.style.top    = topH + "px";
+  zone.style.height = availH + "px";
+
+  const card = document.getElementById("cardArea");
+  card.style.width  = cardW + "px";
+  card.style.height = cardH + "px";
+}
+
+/* ═══ 初期化処理 ═══ */
+function buildStars() {
+  const bg = document.getElementById("bg");
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement("div"); s.className = "star";
+    const sz = Math.random() * 2.5 + 0.6;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s`;
+    bg.appendChild(s);
+  }
+}
+
+function buildSides() {
+  const l = document.getElementById("sideLeft");
+  const r = document.getElementById("sideRight");
+  l.src = spriteUrl(SIDE_IDS[0]); l.onerror = () => l.style.display = "none";
+  r.src = spriteUrl(SIDE_IDS[1]); r.onerror = () => r.style.display = "none";
+}
+
+function buildDecoBar() {
+  const bar = document.getElementById("decoBar");
+  PARADE_IDS.forEach(id => {
+    const img = document.createElement("img");
+    img.src = spriteUrl(id); img.alt = "";
+    img.onerror = () => img.style.display = "none";
+    bar.appendChild(img);
+  });
+}
+
+function buildBottomStrip() {
+  const strip = document.getElementById("bottomStrip");
+  STRIP_IDS.forEach(id => {
+    const img = document.createElement("img");
+    img.src = spriteUrl(id); img.alt = "";
+    img.onerror = () => img.style.display = "none";
+    strip.appendChild(img);
+  });
+}
+
+function buildRowSelector() {
+  const wrap = document.getElementById("rowSelector");
+  ROWS.forEach((row, i) => {
+    const btn = document.createElement("button");
+    btn.className = "row-btn" + (i === 0 ? " active" : "");
+    btn.textContent = row.label;
+    btn.onclick = () => {
+      document.querySelectorAll(".row-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      deck = row.chars === null ? [...ALL_CARDS]
+           : ALL_CARDS.filter(c => row.chars.includes(c[0]));
+      currentIndex = 0; isFlipped = false; showCard();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+/* ═══ カード表示 ═══ */
+function showCard() {
+  const [hira,, name, num, member] = deck[currentIndex];
+  isFlipped = false;
+  document.getElementById("cardInner").classList.remove("flipped");
+  document.getElementById("hiraganaChar").textContent = hira;
+  const img = document.getElementById("pokemonImg");
+  const ballSvg = document.getElementById("ballSvg");
+  const isBall = (num === "ball");
+  if (isBall) {
+    img.style.display    = "none";
+    ballSvg.style.display = "block";
+    ballSvg.style.width  = "52%";
+    ballSvg.style.height = "52%";
+  } else {
+    img.style.display    = "block";
+    ballSvg.style.display = "none";
+    img.src    = spriteUrl(num);
+    img.alt    = name;
+    img.onload = () => layoutCard();
+    // パルデアウパー(10253)が取れない場合は通常ウパー(194)にフォールバック
+    img.onerror = (num === 10253)
+      ? () => { img.src = spriteUrl(194); img.onerror = null; }
+      : null;
+    img.style.width  = "46%";
+    img.style.height = "46%";
+  }
+  document.getElementById("pokemonName").textContent = name;
+  document.getElementById("pokemonReading").textContent =
+    isBall ? "「を」つかって なげよう！" : `「${hira}」ではじまる！`;
+  document.getElementById("pokemonMember").textContent = `✦ ${member}`;
+  document.getElementById("pokeNumber").textContent =
+    isBall ? "🎯" : "#" + String(num).padStart(3, "0");
+  const pct = ((currentIndex + 1) / deck.length) * 100;
+  document.getElementById("progressBar").style.width = pct + "%";
+  document.getElementById("progressLabel").textContent = `${currentIndex+1} / ${deck.length} まい`;
+  document.getElementById("stars").textContent = "";
+}
+
+/* ═══ カード操作 ═══ */
+function flipCard() {
+  if (isNavigating) return;
+  isFlipped = !isFlipped;
+  document.getElementById("cardInner").classList.toggle("flipped", isFlipped);
+  if (isFlipped) {
+    const msgs = ["⭐⭐⭐ すごい！","🌟 よくできました！","🎉 やったね！","✨ かんぺき！","🏆 えらい！","💛 さいこう！","🔥 つよい！"];
+    document.getElementById("stars").textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    setTimeout(() => document.getElementById("stars").textContent = "", 2000);
+    playSound();
+  }
+}
+
+function changeCard(dir) {
+  if (isNavigating) return;
+  const go = () => { currentIndex = (currentIndex + dir + deck.length) % deck.length; showCard(); };
+  if (isFlipped) {
+    isNavigating = true; isFlipped = false;
+    document.getElementById("cardInner").classList.remove("flipped");
+    setTimeout(() => { go(); isNavigating = false; }, FLIP_MS);
+  } else go();
+}
+
+function shuffleCards() {
+  if (isNavigating) return;
+  const go = () => {
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    currentIndex = 0; showCard();
+    document.getElementById("stars").textContent = "🎲 シャッフルしたよ！";
+    setTimeout(() => document.getElementById("stars").textContent = "", 1500);
+  };
+  if (isFlipped) {
+    isNavigating = true; isFlipped = false;
+    document.getElementById("cardInner").classList.remove("flipped");
+    setTimeout(() => { go(); isNavigating = false; }, FLIP_MS);
+  } else go();
+}
+
+// 事前生成した音声ファイルを使って再生
+function playAudioFile(path) {
+  return new Promise(resolve => {
+    const audio = new Audio(path);
+    audio.onended = resolve;
+    audio.onerror = resolve;
+    audio.play().catch(resolve);
+  });
+}
+
+const NAME_TO_FILE = {
+  "アチゲータ": "b_アチゲータ", "イワンコ": "b_イワンコ", "ウパー": "b_ウパー",
+  "エーフィ": "b_エーフィ", "オーガポン": "b_オーガポン", "カイリュー": "b_カイリュー",
+  "キリンリキ": "b_キリンリキ", "クワッス": "b_クワッス", "ケンタロス": "b_ケンタロス",
+  "コライドン": "b_コライドン", "サーナイト": "b_サーナイト", "シャリタツ": "b_シャリタツ",
+  "スリープ": "b_スリープ", "セグレイブ": "b_セグレイブ", "ソウブレイズ": "b_ソウブレイズ",
+  "タイカイデン": "b_タイカイデン", "チラーミィ": "b_チラーミィ", "ツタージャ": "b_ツタージャ",
+  "テラパゴス": "b_テラパゴス", "トドロクツキ": "b_トドロクツキ", "ナッシー": "b_ナッシー",
+  "ニャオハ": "b_ニャオハ", "ヌオー": "b_ヌオー", "ネイティオ": "b_ネイティオ",
+  "ノノクラゲ": "b_ノノクラゲ", "ハバタクカミ": "b_ハバタクカミ", "ヒスイヌメルゴン": "b_ヒスイヌメルゴン",
+  "フシギダネ": "b_フシギダネ", "ヘラクロス": "b_ヘラクロス", "ホゲータ": "b_ホゲータ",
+  "マスカーニャ": "b_マスカーニャ", "ミブリム": "b_ミブリム", "ムンナ": "b_ムンナ",
+  "メリープ": "b_メリープ", "モルペコ": "b_モルペコ", "ヤバチャ": "b_ヤバチャ",
+  "ユキノオー": "b_ユキノオー", "ヨルノゾク": "b_ヨルノゾク", "ラウドボーン": "b_ラウドボーン",
+  "リザードン": "b_リザードン", "ルカリオ": "b_ルカリオ", "レックウザ": "b_レックウザ",
+  "ロトム": "b_ロトム", "ワニノコ": "b_ワニノコ", "ミライドン": "b_ミライドン",
+};
+
+async function playSound() {
+  const [hira, , name, num] = deck[currentIndex];
+  const isBall = (num === "ball");
+  const hiraFile = `audio/a_${hira}.wav`;
+  const nameFile = isBall ? "audio/b_モンスターボール.wav" : `audio/${NAME_TO_FILE[name]}.wav`;
+  await playAudioFile(hiraFile);
+  await new Promise(r => setTimeout(r, 400));
+  await playAudioFile(nameFile);
+}
+
+/* ═══ BGM: ピッカーン！ボルテッカーズ風アレンジ ═══
+   BPM≈138、Eメジャー基調の明るいポップス
+   メロディー・ベース・コードの3パート構成
+═══════════════════════════════════════════ */
+let audioCtx = null, bgmPlaying = false, bgmLoopId = null, masterGain = null;
+
+// 音名→周波数 (A4=440Hz 基準)
+const N = {
+  C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00,
+  A4:440.00, B4:493.88,
+  C5:523.25, D5:587.33, E5:659.25, Fs5:739.99, G5:783.99,
+  A5:880.00, B5:987.77,
+  C6:1046.5, D6:1174.7, E6:1318.5,
+  Cs4:277.18, Cs5:554.37,
+  Gs4:415.30, Gs5:830.61,
+  Ds4:311.13, Ds5:622.25,
+  B3:246.94, E3:164.81, Fs3:185.00, Gs3:207.65, A3:220.00, B2:123.47,
+  Cs3:138.59, E2:82.41,
+};
+const R = 0; // 休符
+
+const BPM = 138;
+const B = 60 / BPM; // 1拍の長さ(秒)
+
+// メロディー [周波数, 拍数]
+const MELODY = [
+  // フレーズA「ピッカーン！」
+  [N.E5,0.5],[N.E5,0.5],[N.G5,0.5],[N.A5,0.5],
+  [N.B5,1.5],[R,0.5],[N.A5,0.5],[N.G5,0.5],
+  [N.E5,0.5],[N.Fs5,0.5],[N.G5,0.5],[N.A5,0.5],
+  [N.G5,2],[R,1],
+  // フレーズB
+  [N.D5,0.5],[N.E5,0.5],[N.Fs5,0.5],[N.G5,0.5],
+  [N.A5,1],[N.B5,0.5],[N.A5,0.5],
+  [N.G5,0.5],[N.A5,0.5],[N.B5,0.5],[N.C6,0.5],
+  [N.B5,2],[R,1],
+  // フレーズC「ボルテッカーズ」
+  [N.E5,0.5],[N.D5,0.5],[N.E5,1],
+  [N.Fs5,0.5],[N.G5,0.5],[N.A5,1],
+  [N.B5,0.5],[N.A5,0.5],[N.G5,0.5],[N.Fs5,0.5],
+  [N.E5,3],[R,1],
+  // フレーズD (サビ)
+  [N.A5,0.5],[N.B5,0.5],[N.C6,0.5],[N.B5,0.5],
+  [N.A5,1],[N.G5,0.5],[N.A5,0.5],
+  [N.B5,0.5],[N.A5,0.5],[N.G5,0.5],[N.Fs5,0.5],
+  [N.G5,3],[R,1],
+];
+
+// ベース [周波数, 拍数]
+const BASS = [
+  [N.E3,2],[N.A3,2],[N.E3,2],[N.B2,2],
+  [N.E3,2],[N.A3,2],[N.Cs3,2],[N.B2,2],
+  [N.E3,2],[N.A3,2],[N.E3,2],[N.B2,2],
+  [N.E3,2],[N.A3,2],[N.B2,2],[N.E3,2],
+];
+
+// コード [和音周波数配列, 拍数]
+const CHORDS = [
+  [[N.E3,N.Gs4,N.B4],2],[[N.A3,N.Cs4,N.E4],2],
+  [[N.E3,N.Gs4,N.B4],2],[[N.B3,N.Ds4,N.Fs5],2],
+  [[N.E3,N.Gs4,N.B4],2],[[N.A3,N.Cs4,N.E4],2],
+  [[N.Cs3,N.E4,N.Gs4],2],[[N.B2,N.Ds4,N.Fs5],2],
+  [[N.E3,N.Gs4,N.B4],2],[[N.A3,N.Cs4,N.E4],2],
+  [[N.E3,N.Gs4,N.B4],2],[[N.B3,N.Ds4,N.Fs5],2],
+  [[N.E3,N.Gs4,N.B4],2],[[N.A3,N.Cs4,N.E4],2],
+  [[N.B3,N.Ds4,N.Fs5],2],[[N.E3,N.Gs4,N.B4],2],
+];
+
+function getCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.65;
+    masterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+function note(ctx, f, type, vol, t, d) {
+  if (!f) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(0.02, d*0.08));
+  g.gain.setValueAtTime(vol*0.75, t + d*0.5);
+  g.gain.linearRampToValueAtTime(0, t + d*0.9);
+  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t+d);
+}
+function scheduleLoop(st) {
+  const ctx = getCtx();
+  let t = st;
+  for (const [f,l] of MELODY) { note(ctx,f,"triangle",0.25,t,B*l*0.88); t+=B*l; }
+  const dur = t - st;
+  let bt = st;
+  for (const [f,l] of BASS)   { note(ctx,f,"sine",0.30,bt,B*l*0.82); bt+=B*l; }
+  let ct = st;
+  for (const [fs,l] of CHORDS){ fs.forEach(f=>note(ctx,f,"sawtooth",0.045,ct,B*l*0.92)); ct+=B*l; }
+  bgmLoopId = setTimeout(() => { if (bgmPlaying) scheduleLoop(st+dur); }, (dur-0.2)*1000);
+}
+function startBGM() {
+  if (bgmPlaying) return; bgmPlaying = true;
+  const ctx = getCtx(); if (ctx.state==="suspended") ctx.resume();
+  scheduleLoop(ctx.currentTime+0.05);
+  document.getElementById("bgmBtn").textContent = "🎵 BGM オフ";
+}
+function stopBGM() {
+  bgmPlaying = false; clearTimeout(bgmLoopId);
+  document.getElementById("bgmBtn").textContent = "🎵 BGM オン";
+}
+function toggleBGM() { bgmPlaying ? stopBGM() : startBGM(); }
+
+/* ═══ キーボード ═══ */
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") changeCard(1);
+  else if (e.key === "ArrowLeft") changeCard(-1);
+  else if (e.key === " ") { e.preventDefault(); flipCard(); }
+  else if (e.key === "s" || e.key === "S") playSound();
+  else if (e.key === "m" || e.key === "M") toggleBGM();
+});
+
+/* ═══ 起動 ═══ */
+/* ── 左右の浮遊ポケモン（ジョウト地方） ── */
+function buildFloatZone() {
+  const zone = document.getElementById("floatZone");
+
+  function makePoke(id, top, side, sideVal, size, delay, dur) {
+    const div = document.createElement("div");
+    div.className = "float-item";
+    div.style.cssText = `top:${top}%;${side}:${sideVal}%;width:${size}px;height:${size}px;animation-delay:${delay}s;animation-duration:${dur}s`;
+    const img = document.createElement("img");
+    img.src = spriteUrl(id); img.alt = "";
+    img.onerror = () => div.style.display = "none";
+    div.appendChild(img);
+    zone.appendChild(div);
+  }
+
+  // ── 左側: 縦6分割で均等配置（重ならないよう間隔を広く）──
+  // サイズ140px, top%: 5%, 22%, 39%, 56%, 73%, 90%（約17%間隔）
+  makePoke(250,  5, "left",  0, 140, 0.0, 4.2); // ホウオウ
+  makePoke(175, 22, "left",  0, 140, 0.5, 4.5); // トゲピー
+  makePoke(179, 39, "left",  0, 140, 1.5, 4.1); // メリープ
+  makePoke(172, 56, "left",  0, 140, 0.7, 3.7); // ピチュー
+  makePoke(196, 73, "left",  0, 140, 0.8, 3.6); // エーフィ
+  makePoke(245, 90, "left",  0, 140, 1.3, 4.8); // スイクン
+
+  // ── 右側: 同様に6分割 ──
+  makePoke(248,  5, "right", 0, 140, 0.4, 4.0); // バンギラス
+  makePoke(155, 22, "right", 0, 140, 1.2, 4.2); // ヒノアラシ
+  makePoke(197, 39, "right", 0, 140, 0.6, 3.9); // ブラッキー
+  makePoke(183, 56, "right", 0, 140, 1.4, 4.7); // マリル
+  makePoke(249, 73, "right", 0, 140, 0.9, 5.0); // ルギア
+  makePoke(158, 90, "right", 0, 140, 0.3, 3.5); // ワニノコ
+}
+
+// 音声リストを事前に読み込んでおく（Safariなど遅延対策）
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+speechSynthesis.getVoices();
+
+buildStars();
+buildSides();
+buildDecoBar();
+buildBottomStrip();
+buildFloatZone();
+buildRowSelector();
+showCard();
+
+// DOMレンダリング完了後にレイアウト計算
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    layoutCard();
+  });
+});
+window.addEventListener("resize", layoutCard);
+</script>
+</body>
+</html>
